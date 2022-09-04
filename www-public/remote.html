@@ -1,0 +1,74 @@
+ <head>
+	<script src="./jquery.js"></script>
+    <style>
+        .overlay {
+          position: fixed;
+          width: 100%;
+          height: 100%;
+          left: 0;
+          top: 0;
+          background: rgba(253, 159, 159, 0.7);
+          z-index: 10;
+        }
+      </style>
+</head> 
+
+<div ontouchmove="sendUpdates(event)" ontouchstart="sendStart(event)" ontouchend="sendStop(event)" class='overlay'></div>
+<div id="log"></div>
+
+<script>
+    const webSocket = new WebSocket(`ws://192.168.88.189/ws`);
+
+    webSocket.onerror = function(message) {
+		alert('WebSocket Error: ' + JSON.stringify(message));
+	};
+
+    webSocket.onopen = function(message) {
+		webSocket.send(JSON.stringify({"event": "register.remote", "data_payload": {}}));
+	};
+
+    //Handle Desktop Input (Mouse), this runs only when mouce is moved and clicked
+    let Clicked = false;
+
+    $(document).mousedown(function(e) {
+        webSocket.send(JSON.stringify({"event": "click.remote", "data_payload": {clicked: true, x: e.pageX, y: e.pageY}}));
+        Clicked = true;
+    });
+
+    $(document).mouseup(function(e) {
+        webSocket.send(JSON.stringify({"event": "click.remote", "data_payload": {clicked: false, x: e.pageX, y: e.pageY}}));
+        Clicked = false;
+        $("#log").text(`False`);
+    });
+
+    document.onmousemove = function(event) {
+        pointerX = event.pageX;
+        pointerY = event.pageY;
+
+        if(Clicked) {
+            $("#log").text(`${pointerX},${pointerY}`);
+            webSocket.send(JSON.stringify({"event": "update.remote", "data_payload": {x: pointerX, y: pointerY}}));
+        }
+    }
+
+    //Handle Mobile Input (Touch), this is triggerd by the overlay div
+    function sendUpdates(event) {
+        var x = parseInt(event.touches[0].clientX.toFixed(0), 10);
+        var y = parseInt(event.touches[0].clientY.toFixed(0), 10);
+        $("#log").text(`${x},${y}`);
+        webSocket.send(JSON.stringify({"event": "update.remote", "data_payload": {x: x, y: y}}));
+    }
+
+    function sendStart(event) {
+        var x = parseInt(event.touches[0].clientX.toFixed(0), 10);
+        var y = parseInt(event.touches[0].clientY.toFixed(0), 10);
+        webSocket.send(JSON.stringify({"event": "click.remote", "data_payload": {clicked: true, x: x, y: y}}));
+    }
+
+    function sendStop(event) {
+        var x = parseInt(event.touches[0].clientX.toFixed(0), 10);
+        var y = parseInt(event.touches[0].clientY.toFixed(0), 10);
+        webSocket.send(JSON.stringify({"event": "click.remote", "data_payload": {clicked: false, x: x, y: y}}));
+        $("#log").text(`False`);
+    }
+</script>

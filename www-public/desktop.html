@@ -1,0 +1,112 @@
+<head>
+	<script src="./jquery.js"></script>
+</head> 
+
+<body><!-- Canvase will be craded by Javascript --></body>
+
+<script>
+    // create canvas element and append it to document body
+    const canvas = document.createElement('canvas');
+    document.body.appendChild(canvas);
+
+    //Set canvas meta
+    document.body.style.margin = 0;
+    canvas.style.position = 'fixed';
+
+    // get canvas 2D context and set him correct size
+    const ctx = canvas.getContext('2d');
+    resize();
+
+    // resize canvas
+    function resize() {
+        ctx.canvas.width = window.innerWidth;
+        ctx.canvas.height = window.innerHeight;
+    }
+
+    // last known local position
+    let pos = { x: 0, y: 0 };
+
+    window.addEventListener('resize', resize);
+    document.addEventListener('mousemove', drawLocal);
+    document.addEventListener('mousedown', setPosition);
+    document.addEventListener('mouseenter', setPosition);
+
+    const webSocket = new WebSocket(`ws://192.168.88.189/ws`);
+
+    webSocket.onerror = function(message) {
+		alert('WebSocket Error: ' + JSON.stringify(message));
+	};
+
+    webSocket.onopen = function(message) {
+		webSocket.send(JSON.stringify({"event": "register.canvas", "data_payload": {}}));
+	};
+
+    webSocket.onmessage = function(message) {
+        const {event, data_payload} = JSON.parse(message.data);
+        if(event == "update.canvas") {
+            drawRemote('#ff0000', data_payload.x, data_payload.y);
+        } else if(event == "click.canvas") {
+            setPositionRemote(data_payload.x, data_payload.y);
+        }
+    };
+
+    // new position from mouse event
+    function setPosition(e) {
+        pos.x = e.clientX;
+        pos.y = e.clientY;
+    }
+
+    function drawLocal(e) {
+        // mouse left button must be pressed
+        if (e.buttons !== 1) return;
+
+        ctx.beginPath(); // begin
+
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#0000ff';
+
+        ctx.moveTo(pos.x, pos.y); // from
+        setPosition(e);
+        ctx.lineTo(pos.x, pos.y); // to
+
+        ctx.stroke(); // draw it!
+    }
+
+    // last known remote position
+    let posRemote = { x: 0, y: 0 };
+
+    // new position from ws event
+    function setPositionRemote(x,y) {
+        posRemote.x = x;
+        posRemote.y = y;
+    }
+
+    function drawRemote(color, x, y) {
+        ctx.beginPath(); // begin
+
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = color;
+
+        ctx.moveTo(posRemote.x, posRemote.y); // from
+        setPositionRemote(x,y);
+        ctx.lineTo(posRemote.x, posRemote.y); // to
+
+        ctx.stroke(); // draw it!
+    }
+
+    let keymap = {}; //Store cached keymap
+    //Register Keypress to run on keydown
+    $(document).on('keypress', function (e) {
+        onkeydown = onkeyup = function(e){
+            e = e || event; // to deal with IE
+            keymap[e.keyCode] = e.type == 'keydown';
+
+            //If c is pressed, clear canvas
+            if (keymap[67]) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+    });
+</script>

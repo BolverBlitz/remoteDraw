@@ -1,0 +1,50 @@
+<head>
+  <script src="./jquery.js"></script>
+  <style>
+    .overlay {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      left: 0;
+      top: 0;
+      background: rgba(51, 51, 51, 0.7);
+      z-index: 10;
+    }
+  </style>
+</head>
+
+<div id='overlay' class='overlay'></div>
+<div id="log">0,0 - 0,0</div>
+
+<script>
+  const src = document.getElementById("overlay");
+  let clientX;
+  let clientY;
+
+  src.addEventListener(
+    "touchstart",
+    (e) => {
+      // Cache the client X/Y coordinates
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    },
+    false
+  );
+
+  src.addEventListener(
+    "touchend",
+    (e) => {
+      let deltaX;
+      let deltaY;
+
+      // Compute the change in X and Y coordinates.
+      // The first touch point in the changedTouches
+      // list is the touch point that was just removed from the surface.
+      deltaX = e.changedTouches[0].clientX - clientX;
+      deltaY = e.changedTouches[0].clientY - clientY;
+
+      ("#log").text(`${clientX},${clientY} - ${deltaX},${deltaY}`);
+    },
+    false
+  );
+</script>
